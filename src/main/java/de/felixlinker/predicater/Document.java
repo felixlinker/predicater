@@ -1,89 +1,104 @@
 package de.felixlinker.predicater;
 
-import de.felixlinker.predicater.exceptions.NodeException;
-import de.felixlinker.predicater.exceptions.RegardException;
-import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
+import org.graphstream.graph.Edge;
+import org.graphstream.graph.Graph;
+import org.graphstream.graph.IdAlreadyInUseException;
+import org.graphstream.graph.Node;
+import org.graphstream.graph.implementations.SingleGraph;
 
-import javax.management.openmbean.KeyAlreadyExistsException;
-import java.util.*;
-import java.util.stream.Stream;
+import java.util.Arrays;
+import java.util.Collection;
 
 public class Document<T> {
 
-    private HashMap<String, T> nodeMap = new HashMap<>();
+    private static final String META_ATTR = "doc.meta";
+    private static final String HIDE_ATTR = "ui.hide";
 
-    private void checkNode(String identifier, boolean checkForPresence) throws NodeException {
-        if (this.nodeMap.containsKey(identifier) != checkForPresence) {
-            throw new NodeException(identifier);
-        }
+    private final Graph g;
+
+    private String displayedPredicate;
+
+    /*private boolean strict = true;
+
+    public void setStrict(boolean strict) {
+        this.g.setStrict(strict);
+        this.g.setAutoCreate(!strict);
+        this.strict = strict;
     }
 
-    private HashMap<String, List<Pair<String, String>>> regards = new HashMap<>();
+    public boolean getStrict() {
+        return this.strict;
+    }*/
 
-    private void checkRegard(String regard, boolean checkForPresence) throws RegardException {
-        if (this.regards.containsKey(regard) != checkForPresence) {
-            throw new RegardException(regard);
-        }
+    public Document(String name) {
+        this.g = new SingleGraph(name);
+        this.g.display();
     }
 
-    public Document addNodes(Pair<String, T>... nodes) throws KeyAlreadyExistsException {
+    public Document addNodes(Pair<String, T>... nodes) /*throws KeyAlreadyExistsException*/ {
         this.addNodes(Arrays.asList(nodes));
         return this;
     }
 
-    public Document addNodes(Collection<Pair<String, T>> nodes) throws NodeException {
-        LinkedList<Pair<String, T>> newNodes = new LinkedList<>();
+    public Document addNodes(Collection<Pair<String, T>> nodes) throws IdAlreadyInUseException {
+//        if (this.strict) {
+            nodes.forEach(node -> {
+                if (this.g.getNode(node.getKey()) == null) {
+                    throw new IdAlreadyInUseException();
+                }
+            });
+//        }
 
-        nodes.forEach(node -> {
-            checkNode(node.getKey(), false);
-            newNodes.add(node);
-        });
-
-        newNodes.forEach(node -> this.nodeMap.put(node.getKey(), node.getValue()));
-
-        return this;
-    }
-
-    public Document addRegard(String regard) throws RegardException {
-        checkRegard(regard, false);
-
-        this.regards.put(regard, new LinkedList<>());
+        nodes.forEach(node -> this.g.addNode(node.getKey()).setAttribute(META_ATTR, node.getValue()));
 
         return this;
     }
 
-    public Document addPredicate(String subject, String predicate, String object) throws NodeException, RegardException {
-        for (String identifier: new String[]{ subject, object }) {
-           checkNode(identifier, true);
+    public Document addPredicate(String subject, String predicate, String object) throws IllegalArgumentException {
+        Node from = this.g.getNode(subject),
+                to = this.g.getNode(object);
+
+        if (from == null || to == null) {
+            throw new IllegalArgumentException();
         }
 
-        checkRegard(predicate, true);
+        String edgeId = composeEdgeId(subject, object);
+        Edge e = this.g.getEdge(edgeId);
+        if (e == null) {
+            e = this.g.addEdge(edgeId, from, to);
+            e.setAttribute(HIDE_ATTR);
+        }
 
-        this.regards.get(predicate).add(new ImmutablePair<>(subject, object));
+        e.setAttribute(predicate);
+        if (predicate.equals(this.displayedPredicate)) {
+            e.removeAttribute(HIDE_ATTR);
+        }
 
         return this;
     }
 
-    public Stream<String> linksFrom(String subject, String predicate) throws NodeException, RegardException {
-        checkNode(subject, true);
-        checkRegard(predicate, true);
+    public boolean isPredicated(String subject, String predicate, String object) {
+        Edge e = this.g.getEdge(composeEdgeId(subject, object));
 
-        return this.regards.get(predicate).stream()
-                .filter(pair -> pair.getKey().equals(subject))
-                .map(Pair::getKey);
+        return e != null && (Boolean) e.getAttribute(predicate);
     }
 
-    public Stream<String> linksTo(String predicate, String object) throws NodeException, RegardException {
-        checkRegard(predicate, true);
-        checkNode(object, true);
-
-        return this.regards.get(predicate).stream()
-                .filter(pair -> pair.getValue().equals(object))
-                .map(Pair::getValue);
+    public void display(String predicate) {
+        for (Edge e: this.g.getEachEdge()) {
+            if (e.getAttribute(predicate)) {
+                e.removeAttribute(HIDE_ATTR);
+            } else {
+                e.setAttribute(HIDE_ATTR);
+            }
+        }
     }
 
-    public Stream<T> mapValues(Stream<String> identifierList) {
-        return identifierList.map(this.nodeMap::get);
+    private static String composeEdgeId(String node1Id, String node2Id) {
+        if (node1Id.compareTo(node2Id) > 0) {
+            return node1Id + node2Id;
+        } else {
+            return node2Id + node1Id;
+        }
     }
 }
