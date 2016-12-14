@@ -1,10 +1,7 @@
 package de.felixlinker.predicater;
 
 import org.apache.commons.lang3.tuple.Pair;
-import org.graphstream.graph.Edge;
-import org.graphstream.graph.Graph;
-import org.graphstream.graph.IdAlreadyInUseException;
-import org.graphstream.graph.Node;
+import org.graphstream.graph.*;
 import org.graphstream.graph.implementations.SingleGraph;
 
 import java.util.Arrays;
@@ -12,8 +9,8 @@ import java.util.Collection;
 
 public class Document<T> {
 
-    private static final String META_ATTR = "doc.meta";
-    private static final String HIDE_ATTR = "ui.hide";
+    static final String META_ATTR = "doc.meta";
+    static final String HIDE_ATTR = "ui.hide";
 
     private final Graph g;
 
@@ -44,7 +41,7 @@ public class Document<T> {
     public Document addNodes(Collection<Pair<String, T>> nodes) throws IdAlreadyInUseException {
 //        if (this.strict) {
             nodes.forEach(node -> {
-                if (this.g.getNode(node.getKey()) == null) {
+                if (this.g.getNode(node.getKey()) != null) {
                     throw new IdAlreadyInUseException();
                 }
             });
@@ -86,12 +83,13 @@ public class Document<T> {
 
     public void display(String predicate) {
         for (Edge e: this.g.getEachEdge()) {
-            if (e.getAttribute(predicate)) {
+            if (e.hasAttribute(predicate)) {
                 e.removeAttribute(HIDE_ATTR);
             } else {
                 e.setAttribute(HIDE_ATTR);
             }
         }
+        this.displayedPredicate = predicate;
     }
 
     private static String composeEdgeId(String node1Id, String node2Id) {
