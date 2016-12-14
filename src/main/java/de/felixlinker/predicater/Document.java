@@ -1,8 +1,12 @@
 package de.felixlinker.predicater;
 
 import org.apache.commons.lang3.tuple.Pair;
-import org.graphstream.graph.*;
+import org.graphstream.graph.Edge;
+import org.graphstream.graph.Graph;
+import org.graphstream.graph.IdAlreadyInUseException;
+import org.graphstream.graph.Node;
 import org.graphstream.graph.implementations.SingleGraph;
+import org.graphstream.ui.view.Viewer;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -15,11 +19,17 @@ public class Document<T> {
 
     final Graph g;
 
+    private final Viewer graphViewer;
+
+    public void close() {
+        this.graphViewer.close();
+    }
+
     private String displayedPredicate;
 
     public Document(String name) {
         this.g = new SingleGraph(name);
-        this.g.display();
+        this.graphViewer = this.g.display();
     }
 
     public Document addNodes(Pair<String, T>... nodes) /*throws KeyAlreadyExistsException*/ {
@@ -77,6 +87,10 @@ public class Document<T> {
             }
         }
         this.displayedPredicate = predicate;
+    }
+
+    public String getName() {
+        return this.g.getId();
     }
 
     static String composeEdgeId(String node1Id, String node2Id) {
