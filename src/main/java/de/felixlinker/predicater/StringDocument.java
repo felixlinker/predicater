@@ -6,6 +6,10 @@ import org.graphstream.graph.Node;
 
 import java.util.Collection;
 
+/**
+ * An implementation of {@link Document} for strings. When the document is displayed, the metadata will be the node's label.
+ * Metadata is of type {@link String}.
+ */
 public class StringDocument extends Document<String> {
 
     public StringDocument(String name) {

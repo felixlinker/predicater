@@ -18,6 +18,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * CLI App to support {@link StringDocument} usage.
+ */
 public class App {
 
     private static final Logger LOGGER = LogManager.getLogger(App.class);
@@ -28,10 +31,17 @@ public class App {
 
     private final BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
 
+    /**
+     * The class for the {@link CmdLineParser} to work on.
+     * After the parser has read all arguments, {@link Runnable#run()} will be invoked on the instantiated bean.
+     */
     private Class<? extends Runnable> beanClass = MainWorker.class;
 
     private boolean stop = false;
 
+    /**
+     * This method functions as the main loop.
+     */
     private void run() {
         while (!this.stop) {
             String[] args;
@@ -71,8 +81,15 @@ public class App {
         new App().run();
     }
 
+    /**
+     * Worker class to be filled by {@link CmdLineParser}. Functions as first stage.
+     */
     public class MainWorker implements Runnable {
 
+        /**
+         * Adds a document to the pool.
+         * @param documentName Name of the document to add.
+         */
         @Option(name = "-c", aliases = {"--close"})
         private void addDocument(String documentName) {
             StringDocument newDocument = new StringDocument(documentName);
@@ -80,9 +97,17 @@ public class App {
             newDocument.display();
         }
 
+        /**
+         * Stores the option to halt the whole App.
+         */
         @Option(name = "-x", aliases = {"--exit"})
         private boolean stopOption = false;
 
+        /**
+         * Opens the given document and switches to {@link DocumentWorker}.
+         * @param documentName Document to open.
+         * @throws IllegalArgumentException
+         */
         @Option(name = "-o", aliases = {"--open"})
         private void open(String documentName) throws IllegalArgumentException {
             Optional<StringDocument> documentOptional = documents.stream()
@@ -97,9 +122,15 @@ public class App {
             }
         }
 
+        /**
+         * Arguments to read documents from files.
+         */
         @Option(name = "-r", aliases = {"--read"}, handler = StringArrayOptionHandler.class)
         private String[] read;
 
+        /**
+         * Arguments to write documents to files.
+         */
         @Option(name = "-w", aliases = {"--write"}, handler = StringArrayOptionHandler.class)
         private String[] write;
 
@@ -144,20 +175,39 @@ public class App {
         }
     }
 
+    /**
+     * Worker class to be filled by {@link CmdLineParser}. Works on a document that has been opened by the {@link MainWorker}.
+     */
     public class DocumentWorker implements Runnable {
 
+        /**
+         * Arguments to add nodes to the document.
+         */
         @Option(name = "-a", aliases = {"--add"}, handler = StringArrayOptionHandler.class)
         private String[] addNodes;
 
+        /**
+         * Arguments to add edges to the document.
+         */
         @Option(name = "-l", aliases = {"--link"}, handler = StringArrayOptionHandler.class)
         private String[] link;
 
+        /**
+         * Arguments to removes edges from the document.
+         */
         @Option(name = "-u", aliases = {"--unlink"}, handler = StringArrayOptionHandler.class)
         private String[] unlink;
 
+        /**
+         * Arguments to exit this worker.
+         */
         @Option(name = "-x", aliases = {"--exit"})
         private boolean exit = false;
 
+        /**
+         * Argument to display edges of a specific type.
+         * @param predicate Edge type to display.
+         */
         @Option(name = "-d", aliases = {"--showPredicate"})
         private void display(String predicate) {
             activeDocument.showPredicate(predicate);
