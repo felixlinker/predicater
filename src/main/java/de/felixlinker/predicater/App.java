@@ -181,8 +181,8 @@ public class App {
             }
 
             if (this.unlink != null) {
-                for (int i = 0; i + 2 < this.link.length; i += 3) {
-                    activeDocument.removePredicate(this.link[i], this.link[i + 1], this.link[i + 2]);
+                for (int i = 0; i + 2 < this.unlink.length; i += 3) {
+                    activeDocument.removePredicate(this.unlink[i], this.unlink[i + 1], this.unlink[i + 2]);
                 }
             }
 
