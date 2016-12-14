@@ -208,7 +208,7 @@ public class App {
          * Argument to display edges of a specific type.
          * @param predicate Edge type to display.
          */
-        @Option(name = "-d", aliases = {"--showPredicate"})
+        @Option(name = "-d", aliases = {"--display"})
         private void display(String predicate) {
             activeDocument.showPredicate(predicate);
         }
