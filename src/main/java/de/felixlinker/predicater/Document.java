@@ -6,8 +6,10 @@ import org.graphstream.graph.Graph;
 import org.graphstream.graph.IdAlreadyInUseException;
 import org.graphstream.graph.Node;
 import org.graphstream.graph.implementations.SingleGraph;
+import org.graphstream.stream.GraphParseException;
 import org.graphstream.ui.view.Viewer;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 
@@ -19,20 +21,27 @@ public class Document<T> {
 
     final Graph g;
 
-    private final Viewer graphViewer;
+    private Viewer graphViewer;
+
+    public void display() {
+        if (this.graphViewer == null) {
+            this.graphViewer = this.g.display();
+        }
+    }
 
     public void close() {
-        this.graphViewer.close();
+        if (this.graphViewer != null) {
+            this.graphViewer.close();
+        }
     }
 
     private String displayedPredicate;
 
     public Document(String name) {
         this.g = new SingleGraph(name);
-        this.graphViewer = this.g.display();
     }
 
-    public Document addNodes(Pair<String, T>... nodes) /*throws KeyAlreadyExistsException*/ {
+    public Document addNodes(Pair<String, T>... nodes) throws IdAlreadyInUseException {
         this.addNodes(Arrays.asList(nodes));
         return this;
     }
@@ -72,13 +81,34 @@ public class Document<T> {
         return this;
     }
 
+    public Document removePredicate(String subject, String predicate, String object) throws IllegalArgumentException {
+        Node from = this.g.getNode(subject),
+                to = this.g.getNode(object);
+
+        if (from == null || to == null) {
+            throw new IllegalArgumentException();
+        }
+
+        String edgeId = composeEdgeId(subject, object);
+
+        Edge e = this.g.getEdge(edgeId);
+        if (e != null) {
+            e.removeAttribute(predicate);
+            if (predicate.equals(this.displayedPredicate)) {
+                e.addAttribute(HIDE_ATTR);
+            }
+        }
+
+        return this;
+    }
+
     public boolean isPredicated(String subject, String predicate, String object) {
         Edge e = this.g.getEdge(composeEdgeId(subject, object));
 
         return e != null && (Boolean) e.getAttribute(predicate);
     }
 
-    public void display(String predicate) {
+    public void showPredicate(String predicate) {
         for (Edge e: this.g.getEachEdge()) {
             if (e.hasAttribute(predicate)) {
                 e.removeAttribute(HIDE_ATTR);
@@ -91,6 +121,14 @@ public class Document<T> {
 
     public String getName() {
         return this.g.getId();
+    }
+
+    public void read(String fileName) throws IOException, GraphParseException {
+        this.g.read(fileName);
+    }
+
+    public void write(String fileName) throws IOException {
+        this.g.write(fileName);
     }
 
     static String composeEdgeId(String node1Id, String node2Id) {

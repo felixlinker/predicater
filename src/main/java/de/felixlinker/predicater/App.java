@@ -4,11 +4,11 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+import org.graphstream.stream.GraphParseException;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
 import org.kohsuke.args4j.spi.StringArrayOptionHandler;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -63,6 +63,8 @@ public class App {
                 LOGGER.error(e.getMessage(), e);
             }
         }
+
+//        this.documents.forEach(Document::close);
     }
 
     public static void main(String[] args) {
@@ -71,18 +73,18 @@ public class App {
 
     public class MainWorker implements Runnable {
 
-        public MainWorker() {}
-
-        @Option(name = "-c", aliases = {"--close"}, forbids = {"-s"})
-        public void addDocument(String documentName) {
-            documents.add(new StringDocument(documentName));
+        @Option(name = "-c", aliases = {"--close"})
+        private void addDocument(String documentName) {
+            StringDocument newDocument = new StringDocument(documentName);
+            documents.add(newDocument);
+            newDocument.display();
         }
 
         @Option(name = "-x", aliases = {"--exit"})
         private boolean stopOption = false;
 
-        @Option(name = "-o", aliases = {"--open"},forbids = {"-s"})
-        public void open(String documentName) throws IllegalArgumentException {
+        @Option(name = "-o", aliases = {"--open"})
+        private void open(String documentName) throws IllegalArgumentException {
             Optional<StringDocument> documentOptional = documents.stream()
                     .filter(doc -> doc.getName().equals(documentName))
                     .findFirst();
@@ -95,18 +97,54 @@ public class App {
             }
         }
 
+        @Option(name = "-r", aliases = {"--read"}, handler = StringArrayOptionHandler.class)
+        private String[] read;
+
+        @Option(name = "-w", aliases = {"--write"}, handler = StringArrayOptionHandler.class)
+        private String[] write;
+
         @Override
         public void run() {
             if (this.stopOption) {
-                documents.forEach(Document::close);
                 stop = true;
+            }
+
+            if (read != null) {
+                for (int i = 0; i + 1 < this.read.length; i += 2) {
+                    try {
+                        StringDocument newDocument = new StringDocument(this.read[i]);
+                        newDocument.read(this.read[i + 1]);
+                        documents.add(newDocument);
+                        newDocument.display();
+                    } catch (IOException | GraphParseException e) {
+                        LOGGER.error(e.getMessage(), e);
+                    }
+                }
+            }
+
+            if (write != null) {
+                for (int i = 0; i + 1 < this.write.length; i += 2) {
+                    final int index = i;
+                    StringDocument writeDocument = documents.stream()
+                            .filter(document -> document.getName().equals(this.write[index]))
+                            .findFirst()
+                            .orElse(null);
+
+                    if (writeDocument == null) {
+                        throw new IllegalArgumentException("no document of given name exists");
+                    }
+
+                    try {
+                        writeDocument.write(this.write[index + 1]);
+                    } catch (IOException e) {
+                        LOGGER.error(e.getMessage(), e);
+                    }
+                }
             }
         }
     }
 
     public class DocumentWorker implements Runnable {
-
-        public DocumentWorker() {}
 
         @Option(name = "-a", aliases = {"--add"}, handler = StringArrayOptionHandler.class)
         private String[] addNodes;
@@ -120,9 +158,9 @@ public class App {
         @Option(name = "-x", aliases = {"--exit"})
         private boolean exit = false;
 
-        @Option(name = "-d", aliases = {"--display"})
+        @Option(name = "-d", aliases = {"--showPredicate"})
         private void display(String predicate) {
-            activeDocument.display(predicate);
+            activeDocument.showPredicate(predicate);
         }
 
         @Override
@@ -137,15 +175,15 @@ public class App {
             }
 
             if (this.link != null) {
-                if (this.link.length < 3) {
-                    throw new IllegalArgumentException("-link param needs 3 parameters");
+                for (int i = 0; i + 2 < this.link.length; i += 3) {
+                    activeDocument.addPredicate(this.link[i], this.link[i + 1], this.link[i + 2]);
                 }
-
-                activeDocument.addPredicate(this.link[0], this.link[1], this.link[2]);
             }
 
             if (this.unlink != null) {
-                throw new NotImplementedException();
+                for (int i = 0; i + 2 < this.link.length; i += 3) {
+                    activeDocument.removePredicate(this.link[i], this.link[i + 1], this.link[i + 2]);
+                }
             }
 
             if (this.exit) {
