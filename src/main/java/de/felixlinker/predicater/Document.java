@@ -11,22 +11,11 @@ public class Document<T> {
 
     static final String META_ATTR = "doc.meta";
     static final String HIDE_ATTR = "ui.hide";
+    static final String LABEL_ATTR = "ui.label";
 
-    private final Graph g;
+    final Graph g;
 
     private String displayedPredicate;
-
-    /*private boolean strict = true;
-
-    public void setStrict(boolean strict) {
-        this.g.setStrict(strict);
-        this.g.setAutoCreate(!strict);
-        this.strict = strict;
-    }
-
-    public boolean getStrict() {
-        return this.strict;
-    }*/
 
     public Document(String name) {
         this.g = new SingleGraph(name);
@@ -39,13 +28,11 @@ public class Document<T> {
     }
 
     public Document addNodes(Collection<Pair<String, T>> nodes) throws IdAlreadyInUseException {
-//        if (this.strict) {
             nodes.forEach(node -> {
                 if (this.g.getNode(node.getKey()) != null) {
                     throw new IdAlreadyInUseException();
                 }
             });
-//        }
 
         nodes.forEach(node -> this.g.addNode(node.getKey()).setAttribute(META_ATTR, node.getValue()));
 
@@ -92,7 +79,7 @@ public class Document<T> {
         this.displayedPredicate = predicate;
     }
 
-    private static String composeEdgeId(String node1Id, String node2Id) {
+    static String composeEdgeId(String node1Id, String node2Id) {
         if (node1Id.compareTo(node2Id) > 0) {
             return node1Id + node2Id;
         } else {
