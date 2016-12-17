@@ -1,6 +1,5 @@
 package de.felixlinker.predicater;
 
-import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.graphstream.graph.IdAlreadyInUseException;
 import org.junit.Assert;
 import org.junit.Test;
@@ -9,7 +8,7 @@ public class DocumentTest {
 
     private Document<String> genDoc(String name) {
         Document<String> d = new Document<>(name);
-        d.addNodes(new ImmutablePair<>("A", "A"), new ImmutablePair<>("B", "B"), new ImmutablePair<>("C", "C"));
+        d.addNode("A", "A").addNode("B", "B").addNode("C", "C");
         d.addPredicate("A", "isGreen", "B");
         d.addPredicate("B", "isBlue", "C");
         d.addPredicate("C", "isYellow", "A");
@@ -26,7 +25,7 @@ public class DocumentTest {
     @Test(expected = IdAlreadyInUseException.class)
     public void redundantNodeTest() {
         Document<String> d = genDoc("redNodeTest");
-        d.addNodes(new ImmutablePair<>("A", "A"));
+        d.addNode("A", "A");
     }
 
     @Test

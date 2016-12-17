@@ -19,9 +19,8 @@ import java.util.Collection;
  */
 public class Document<T> {
 
-    static final String META_ATTR = "doc.meta";
-    static final String HIDE_ATTR = "ui.hide";
-    static final String LABEL_ATTR = "ui.label";
+    private static final String META_ATTR = "doc.meta";
+    private static final String HIDE_ATTR = "ui.hide";
 
     final Graph g;
 
@@ -57,25 +56,12 @@ public class Document<T> {
      * @return This document for chain invocation.
      * @throws IdAlreadyInUseException Thrown if any of the given node's id already exists.
      */
-    public Document addNodes(Pair<String, T>... nodes) throws IdAlreadyInUseException {
-        this.addNodes(Arrays.asList(nodes));
-        return this;
-    }
+    public Document addNode(String nodeId, T metaData) throws IdAlreadyInUseException {
+        if (this.g.getNode(nodeId) != null) {
+            throw new IdAlreadyInUseException();
+        }
 
-    /**
-     * Adds nodes to the graph.
-     * @param nodes Each node is a pair as (id, metadata).
-     * @return This document for chain invocation.
-     * @throws IdAlreadyInUseException Thrown if any of the given node's id already exists.
-     */
-    public Document addNodes(Collection<Pair<String, T>> nodes) throws IdAlreadyInUseException {
-            nodes.forEach(node -> {
-                if (this.g.getNode(node.getKey()) != null) {
-                    throw new IdAlreadyInUseException();
-                }
-            });
-
-        nodes.forEach(node -> this.g.addNode(node.getKey()).setAttribute(META_ATTR, node.getValue()));
+        this.g.addNode(nodeId).setAttribute(META_ATTR, metaData);
 
         return this;
     }

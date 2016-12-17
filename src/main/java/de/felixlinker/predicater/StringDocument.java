@@ -1,10 +1,6 @@
 package de.felixlinker.predicater;
 
-import org.apache.commons.lang3.tuple.Pair;
 import org.graphstream.graph.IdAlreadyInUseException;
-import org.graphstream.graph.Node;
-
-import java.util.Collection;
 
 /**
  * An implementation of {@link Document} for strings. When the document is displayed, the metadata will be the node's label.
@@ -12,24 +8,16 @@ import java.util.Collection;
  */
 public class StringDocument extends Document<String> {
 
+    private static final String LABEL_ATTR = "ui.label";
+
     public StringDocument(String name) {
         super(name);
     }
 
     @Override
-    public Document addNodes(Collection<Pair<String, String>> nodes) throws IdAlreadyInUseException {
-        nodes.forEach(node -> {
-            if (this.g.getNode(node.getKey()) != null) {
-                throw new IdAlreadyInUseException();
-            }
-        });
-
-        nodes.forEach(node -> {
-            Node n = this.g.addNode(node.getKey());
-            n.setAttribute(META_ATTR, node.getValue());
-            n.setAttribute(LABEL_ATTR, node.getValue());
-        });
-
+    public Document addNode(String nodeId, String metaData) throws IdAlreadyInUseException {
+        super.addNode(nodeId, metaData);
+        this.g.getNode(nodeId).setAttribute(LABEL_ATTR, metaData);
         return this;
     }
 }

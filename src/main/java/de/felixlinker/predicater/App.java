@@ -1,7 +1,5 @@
 package de.felixlinker.predicater;
 
-import org.apache.commons.lang3.tuple.ImmutablePair;
-import org.apache.commons.lang3.tuple.Pair;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.graphstream.stream.GraphParseException;
@@ -216,12 +214,9 @@ public class App {
         @Override
         public void run() {
             if (addNodes != null) {
-                List<Pair<String, String>> nodeList = new LinkedList<>();
                 for (int i = 0; i + 1 < this.addNodes.length; i += 2) {
-                    nodeList.add(new ImmutablePair<>(addNodes[i], addNodes[i + 1]));
+                    activeDocument.addNode(this.addNodes[i], this.addNodes[i + 1]);
                 }
-
-                activeDocument.addNodes(nodeList);
             }
 
             if (this.link != null) {
