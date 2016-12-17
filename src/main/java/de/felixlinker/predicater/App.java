@@ -181,19 +181,25 @@ public class App {
         /**
          * Arguments to add nodes to the document.
          */
-        @Option(name = "-a", aliases = {"--add"}, handler = StringArrayOptionHandler.class)
+        @Option(name = "-a", aliases = {"--add", "--add-node"}, handler = StringArrayOptionHandler.class)
         private String[] addNodes;
+
+        /**
+         * Arguments to remove nodes from the document.
+         */
+        @Option(name = "-r", aliases = {"--remove", "--remove-node"}, handler = StringArrayOptionHandler.class)
+        private String[] removeNodes;
 
         /**
          * Arguments to add edges to the document.
          */
-        @Option(name = "-l", aliases = {"--link"}, handler = StringArrayOptionHandler.class)
+        @Option(name = "-l", aliases = {"--link", "--link-nodes"}, handler = StringArrayOptionHandler.class)
         private String[] link;
 
         /**
          * Arguments to removes edges from the document.
          */
-        @Option(name = "-u", aliases = {"--unlink"}, handler = StringArrayOptionHandler.class)
+        @Option(name = "-u", aliases = {"--unlink, --unlink-nodes"}, handler = StringArrayOptionHandler.class)
         private String[] unlink;
 
         /**
@@ -213,9 +219,15 @@ public class App {
 
         @Override
         public void run() {
-            if (addNodes != null) {
+            if (this.addNodes != null) {
                 for (int i = 0; i + 1 < this.addNodes.length; i += 2) {
                     activeDocument.addNode(this.addNodes[i], this.addNodes[i + 1]);
+                }
+            }
+
+            if (this.removeNodes != null) {
+                for (String nodeId: this.removeNodes) {
+                    activeDocument.removeNode(nodeId);
                 }
             }
 

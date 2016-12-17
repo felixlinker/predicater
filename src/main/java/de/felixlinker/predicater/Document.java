@@ -1,17 +1,11 @@
 package de.felixlinker.predicater;
 
-import org.apache.commons.lang3.tuple.Pair;
-import org.graphstream.graph.Edge;
-import org.graphstream.graph.Graph;
-import org.graphstream.graph.IdAlreadyInUseException;
-import org.graphstream.graph.Node;
+import org.graphstream.graph.*;
 import org.graphstream.graph.implementations.SingleGraph;
 import org.graphstream.stream.GraphParseException;
 import org.graphstream.ui.view.Viewer;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collection;
 
 /**
  * This class stores an undirected, loop-free graph with multiple types of edges. Each node can have metadata.
@@ -52,7 +46,8 @@ public class Document<T> {
 
     /**
      * Adds nodes to the graph.
-     * @param nodes Each node is a pair as (id, metadata).
+     * @param nodeId Id of the node to add.
+     * @param metaData Meta data to be assigned to the node.
      * @return This document for chain invocation.
      * @throws IdAlreadyInUseException Thrown if any of the given node's id already exists.
      */
@@ -64,6 +59,19 @@ public class Document<T> {
         this.g.addNode(nodeId).setAttribute(META_ATTR, metaData);
 
         return this;
+    }
+
+    /**
+     * Removes a node from the document.
+     * @param nodeId Id of the node to remove.
+     * @return {@code true} if the node could be removed, false if it didn't existed.
+     */
+    public boolean removeNode(String nodeId) {
+        try {
+            return this.g.removeNode(nodeId) != null;
+        } catch (ElementNotFoundException e) {
+            return false;
+        }
     }
 
     /**
@@ -105,7 +113,7 @@ public class Document<T> {
      * @return This document for chain invocation.
      * @throws IllegalArgumentException Thrown if any of the given nodes doesn't exist.
      */
-    public Document removePredicate(String subject, String predicate, String object) throws IllegalArgumentException {
+    public boolean removePredicate(String subject, String predicate, String object) throws IllegalArgumentException {
         Node from = this.g.getNode(subject),
                 to = this.g.getNode(object);
 
@@ -116,14 +124,17 @@ public class Document<T> {
         String edgeId = composeEdgeId(subject, object);
 
         Edge e = this.g.getEdge(edgeId);
-        if (e != null) {
-            e.removeAttribute(predicate);
-            if (predicate.equals(this.displayedPredicate)) {
-                e.addAttribute(HIDE_ATTR);
-            }
+        if (e == null) {
+            return false;
         }
 
-        return this;
+        boolean wasPredicated = e.hasAttribute(predicate);
+        e.removeAttribute(predicate);
+        if (wasPredicated && predicate.equals(this.displayedPredicate)) {
+            e.addAttribute(HIDE_ATTR);
+        }
+
+        return wasPredicated;
     }
 
     /**
@@ -156,7 +167,7 @@ public class Document<T> {
 
     /**
      * Returns the document's name set in constructor.
-     * @return
+     * @return Document name.
      */
     public String getName() {
         return this.g.getId();
