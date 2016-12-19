@@ -18,6 +18,7 @@ public class StringDocument extends Document<String> {
     public Document addNode(String nodeId, String metaData) throws IdAlreadyInUseException {
         super.addNode(nodeId, metaData);
         this.g.getNode(nodeId).setAttribute(LABEL_ATTR, metaData);
+        this.displayGraph.getNode(nodeId).setAttribute(LABEL_ATTR, metaData);
         return this;
     }
 }

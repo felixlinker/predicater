@@ -1,0 +1,8 @@
+node {
+	fill-color: grey;
+	stroke-mode: plain;
+	stroke-color: black;
+	stroke-width: 1px;
+	text-alignment: at-right;
+	text-offset: 3px, 0px;
+}

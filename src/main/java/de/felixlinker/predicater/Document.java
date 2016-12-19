@@ -6,6 +6,7 @@ import org.graphstream.stream.GraphParseException;
 import org.graphstream.ui.view.Viewer;
 
 import java.io.IOException;
+import java.net.URL;
 
 /**
  * This class stores an undirected, loop-free graph with multiple types of edges. Each node can have metadata.
@@ -14,19 +15,30 @@ import java.io.IOException;
 public class Document<T> {
 
     private static final String META_ATTR = "doc.meta";
-    private static final String HIDE_ATTR = "ui.hide";
+    private static final String STYLE_ATTR = "ui.stylesheet";
+    private static final String RENDERER_ATTR = "org.graphstream.ui.renderer";
+    private static final String RENDERER = "org.graphstream.ui.j2dviewer.J2DGraphRenderer";
+    private static final URL STYLE_SHEET = Document.class.getClassLoader().getResource("graph-style.css");
+
+    static {
+        System.setProperty(RENDERER_ATTR, RENDERER);
+    }
 
     final Graph g;
+
+    final Graph displayGraph;
 
     private Viewer graphViewer;
 
     /**
      * Creates a window that displays the graph. Only one type of edges can be displayed at once.
      */
-    public void display() {
+    public Document display() {
         if (this.graphViewer == null) {
-            this.graphViewer = this.g.display();
+            this.graphViewer = this.displayGraph.display();
         }
+
+        return this;
     }
 
     /**
@@ -42,6 +54,8 @@ public class Document<T> {
 
     public Document(String name) {
         this.g = new SingleGraph(name);
+        this.displayGraph = new SingleGraph(name + Integer.toString(name.hashCode()));
+        this.displayGraph.setAttribute(STYLE_ATTR, "url(" + STYLE_SHEET.toString() + ")");
     }
 
     /**
@@ -57,6 +71,7 @@ public class Document<T> {
         }
 
         this.g.addNode(nodeId).setAttribute(META_ATTR, metaData);
+        this.displayGraph.addNode(nodeId).setAttribute(META_ATTR, metaData);
 
         return this;
     }
@@ -68,7 +83,12 @@ public class Document<T> {
      */
     public boolean removeNode(String nodeId) {
         try {
-            return this.g.removeNode(nodeId) != null;
+            if (this.g.removeNode(nodeId) != null) {
+                this.displayGraph.removeNode(nodeId);
+                return true;
+            }
+
+            return false;
         } catch (ElementNotFoundException e) {
             return false;
         }
@@ -94,12 +114,11 @@ public class Document<T> {
         Edge e = this.g.getEdge(edgeId);
         if (e == null) {
             e = this.g.addEdge(edgeId, from, to);
-            e.setAttribute(HIDE_ATTR);
         }
 
         e.setAttribute(predicate);
         if (predicate.equals(this.displayedPredicate)) {
-            e.removeAttribute(HIDE_ATTR);
+            this.displayGraph.addEdge(edgeId, subject, object);
         }
 
         return this;
@@ -131,7 +150,7 @@ public class Document<T> {
         boolean wasPredicated = e.hasAttribute(predicate);
         e.removeAttribute(predicate);
         if (wasPredicated && predicate.equals(this.displayedPredicate)) {
-            e.addAttribute(HIDE_ATTR);
+            this.displayGraph.removeEdge(edgeId);
         }
 
         return wasPredicated;
@@ -155,11 +174,15 @@ public class Document<T> {
      * @param predicate Edge type to show.
      */
     public void showPredicate(String predicate) {
+        this.displayGraph.getEachEdge().forEach(edge -> {
+            if (!this.g.getEdge(edge.getId()).hasAttribute(predicate)) {
+                this.displayGraph.removeEdge(edge);
+            }
+        });
+
         for (Edge e: this.g.getEachEdge()) {
-            if (e.hasAttribute(predicate)) {
-                e.removeAttribute(HIDE_ATTR);
-            } else {
-                e.setAttribute(HIDE_ATTR);
+            if (e.hasAttribute(predicate) && this.displayGraph.getEdge(e.getId()) == null) {
+                this.displayGraph.addEdge(e.getId(), e.getNode0().getId(), e.getNode1().getId());
             }
         }
         this.displayedPredicate = predicate;
@@ -181,6 +204,9 @@ public class Document<T> {
      */
     public void read(String fileName) throws IOException, GraphParseException {
         this.g.read(fileName);
+
+        this.displayGraph.read(fileName);
+        this.showPredicate(this.displayedPredicate);
     }
 
     /**
