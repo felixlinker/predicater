@@ -88,7 +88,7 @@ public class App {
          * Adds a document to the pool.
          * @param documentName Name of the document to add.
          */
-        @Option(name = "-c", aliases = {"--close"})
+        @Option(name = "-c", aliases = {"--create"})
         private void addDocument(String documentName) {
             StringDocument newDocument = new StringDocument(documentName);
             documents.add(newDocument);
@@ -215,6 +215,14 @@ public class App {
         @Option(name = "-d", aliases = {"--display"})
         private void display(String predicate) {
             activeDocument.showPredicate(predicate);
+        }
+
+        /**
+         * Das
+         */
+        @Option(name = "-t", aliases = {"--edge-types", "--types"})
+        private void listPredicates() {
+
         }
 
         @Override
