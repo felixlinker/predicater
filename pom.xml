@@ -31,12 +31,12 @@
             <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
           </transformers>
           <finalName>predicater</finalName>
-          <filters>
+          <!--<filters>
             <filter>
               <artifact>org.bouncycastle.mail:*</artifact>
               <exclude></exclude>
             </filter>
-          </filters>
+          </filters>-->
         </configuration>
         <executions>
           <execution>
