@@ -34,8 +34,8 @@ public class DocumentTest {
         Assert.assertTrue(d.isPredicated("A", "isGreen", "B"));
         Assert.assertTrue(d.isPredicated("B", "isBlue", "C"));
         Assert.assertTrue(d.isPredicated("C", "isYellow", "A"));
-        Assert.assertTrue(d.removePredicate("A", "isGreen", "B"));
-        Assert.assertFalse(d.removePredicate("A", "isGreen", "B"));
+        d.removePredicate("A", "isGreen", "B");
+        Assert.assertFalse(d.isPredicated("A", "isGreen", "B"));
         Assert.assertTrue(d.removeNode("A"));
         Assert.assertFalse(d.removeNode("A"));
     }

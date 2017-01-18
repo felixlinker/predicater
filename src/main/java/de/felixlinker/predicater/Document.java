@@ -7,6 +7,7 @@ import org.graphstream.ui.view.Viewer;
 
 import java.io.IOException;
 import java.net.URL;
+import java.util.*;
 
 /**
  * This class stores an undirected, loop-free graph with multiple types of edges. Each node can have metadata.
@@ -16,6 +17,7 @@ public class Document<T> {
 
     private static final String META_ATTR = "doc.meta";
     private static final String STYLE_ATTR = "ui.stylesheet";
+    private static final String PRED_ATTR = "predicater.edgetypes";
     private static final String RENDERER_ATTR = "org.graphstream.ui.renderer";
     private static final String RENDERER = "org.graphstream.ui.j2dviewer.J2DGraphRenderer";
     private static final URL STYLE_SHEET = Document.class.getClassLoader().getResource("graph-style.css");
@@ -110,15 +112,19 @@ public class Document<T> {
             throw new IllegalArgumentException();
         }
 
-        String edgeId = composeEdgeId(subject, object);
-        Edge e = this.g.getEdge(edgeId);
-        if (e == null) {
-            e = this.g.addEdge(edgeId, from, to);
+        String edgeId = subject + object;
+        Edge edge = this.g.getEdge(edgeId);
+        if (edge == null) {
+            edge = this.g.addEdge(edgeId, from, to, true);
         }
 
-        e.setAttribute(predicate);
-        if (predicate.equals(this.displayedPredicate)) {
-            this.displayGraph.addEdge(edgeId, subject, object);
+        List<String> predicates = getPredicatesList(edge);
+        if (!predicates.contains(predicate)) {
+            predicates.add(predicate);
+
+            if (predicate.equals(this.displayedPredicate)) {
+                this.displayGraph.addEdge(edgeId, subject, object, true);
+            }
         }
 
         return this;
@@ -132,7 +138,7 @@ public class Document<T> {
      * @return This document for chain invocation.
      * @throws IllegalArgumentException Thrown if any of the given nodes doesn't exist.
      */
-    public boolean removePredicate(String subject, String predicate, String object) throws IllegalArgumentException {
+    public Document removePredicate(String subject, String predicate, String object) throws IllegalArgumentException {
         Node from = this.g.getNode(subject),
                 to = this.g.getNode(object);
 
@@ -140,20 +146,19 @@ public class Document<T> {
             throw new IllegalArgumentException();
         }
 
-        String edgeId = composeEdgeId(subject, object);
+        String edgeId = subject + object;
 
-        Edge e = this.g.getEdge(edgeId);
-        if (e == null) {
-            return false;
+        Edge edge = this.g.getEdge(edgeId);
+        if (edge == null) {
+            return this;
         }
 
-        boolean wasPredicated = e.hasAttribute(predicate);
-        e.removeAttribute(predicate);
-        if (wasPredicated && predicate.equals(this.displayedPredicate)) {
+        boolean removed = getPredicatesList(edge).remove(predicate);
+        if (removed && predicate.equals(this.displayedPredicate)) {
             this.displayGraph.removeEdge(edgeId);
         }
 
-        return wasPredicated;
+        return this;
     }
 
     /**
@@ -164,9 +169,9 @@ public class Document<T> {
      * @return This document for chain invocation.
      */
     public boolean isPredicated(String subject, String predicate, String object) {
-        Edge e = this.g.getEdge(composeEdgeId(subject, object));
+        Edge edge = this.g.getEdge(subject + object);
 
-        return e != null && (Boolean) e.getAttribute(predicate);
+        return edge != null && getPredicatesList(edge).contains(predicate);
     }
 
     /**
@@ -174,17 +179,22 @@ public class Document<T> {
      * @param predicate Edge type to show.
      */
     public void showPredicate(String predicate) {
+        if (predicate == null) {
+            return;
+        }
+
         this.displayGraph.getEachEdge().forEach(edge -> {
-            if (!this.g.getEdge(edge.getId()).hasAttribute(predicate)) {
+            if (!getPredicatesList(this.g.getEdge(edge.getId())).contains(predicate)) {
                 this.displayGraph.removeEdge(edge);
             }
         });
 
-        for (Edge e: this.g.getEachEdge()) {
-            if (e.hasAttribute(predicate) && this.displayGraph.getEdge(e.getId()) == null) {
-                this.displayGraph.addEdge(e.getId(), e.getNode0().getId(), e.getNode1().getId());
+        this.g.getEachEdge().forEach(edge -> {
+            if (getPredicatesList(edge).contains(predicate) && this.displayGraph.getEdge(edge.getId()) == null) {
+                this.displayGraph.addEdge(edge.getId(), edge.getNode0().getId(), edge.getNode1().getId(), true);
             }
-        }
+        });
+
         this.displayedPredicate = predicate;
     }
 
@@ -194,6 +204,12 @@ public class Document<T> {
      */
     public String getName() {
         return this.g.getId();
+    }
+
+    public Set<String> getPredicates() {
+        HashSet<String> predicates = new HashSet<>();
+        this.g.getEachEdge().forEach(edge -> predicates.addAll(getPredicatesList(edge)));
+        return predicates;
     }
 
     /**
@@ -206,7 +222,7 @@ public class Document<T> {
         this.g.read(fileName);
 
         this.displayGraph.read(fileName);
-        this.showPredicate(this.displayedPredicate);
+        this.showPredicate(this.getPredicates().stream().findFirst().get());
     }
 
     /**
@@ -218,11 +234,24 @@ public class Document<T> {
         this.g.write(fileName);
     }
 
-    private static String composeEdgeId(String node1Id, String node2Id) {
-        if (node1Id.compareTo(node2Id) > 0) {
-            return node1Id + node2Id;
-        } else {
-            return node2Id + node1Id;
+    private static List<String> getPredicatesList(Edge edge) {
+        List<String> predicateList = edge.getAttribute(PRED_ATTR, List.class);
+        if (predicateList != null) {
+            return predicateList;
         }
+
+        String[] predicatesArray = (String[]) edge.getArray(PRED_ATTR);
+        if (predicatesArray != null) {
+            predicateList = Arrays.asList(predicatesArray);
+        } else {
+            String predicate = edge.getAttribute(PRED_ATTR, String.class);
+            predicateList = new LinkedList<>();
+            if (predicate != null) {
+                predicateList.add(predicate);
+            }
+        }
+
+        edge.addAttribute(PRED_ATTR, predicateList);
+        return predicateList;
     }
 }

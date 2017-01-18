@@ -15,6 +15,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * CLI App to support {@link StringDocument} usage.
@@ -217,13 +218,8 @@ public class App {
             activeDocument.showPredicate(predicate);
         }
 
-        /**
-         * Das
-         */
         @Option(name = "-t", aliases = {"--edge-types", "--types"})
-        private void listPredicates() {
-
-        }
+        private boolean doListEdgeTypes = false;
 
         @Override
         public void run() {
@@ -251,9 +247,27 @@ public class App {
                 }
             }
 
+            if (this.doListEdgeTypes) {
+                this.printEdgeTypes();
+            }
+
             if (this.exit) {
                 beanClass = MainWorker.class;
             }
+        }
+
+        private void printEdgeTypes() {
+            Set<String> predicates = activeDocument.getPredicates();
+            StringBuilder builder = new StringBuilder()
+                    .append("Following predicates are available:");
+            predicates
+                    .forEach(predicate -> {
+                        builder
+                                .append('\n')
+                                .append(predicate);
+                    });
+
+            LOGGER.info(builder);
         }
     }
 }
