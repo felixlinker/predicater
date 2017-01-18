@@ -26,7 +26,7 @@ public class StringDocument extends Document<String> {
     }
 
     @Override
-    public Document addPredicate(String subject, String predicate, String object) throws IllegalArgumentException {
+    public Document predicate(String subject, String predicate, String object) throws IllegalArgumentException {
         String[] split = predicate.split(EDGE_LABEL_REGEX);
         String label = null;
         if (split.length > 1) {
