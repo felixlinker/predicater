@@ -23,6 +23,7 @@ import java.util.Set;
 public class App {
 
     private static final Logger LOGGER = LogManager.getLogger(App.class);
+    private static final String EDGE_LABEL_REGEX = ":";
 
     private final List<StringDocument> documents = new LinkedList<>();
 
@@ -224,6 +225,11 @@ public class App {
             activeDocument.showPredicate(predicate);
         }
 
+        @Option(name = "-h", aliases = {"--hide"})
+        private void hide(String predicate) {
+            activeDocument.hidePredicate(predicate);
+        }
+
         @Option(name = "-t", aliases = {"--edge-types", "--types"})
         private boolean doListEdgeTypes = false;
 
@@ -243,25 +249,31 @@ public class App {
 
             if (this.link != null) {
                 for (int i = 0; i + 2 < this.link.length; i += 3) {
-                    activeDocument.addPredicate(this.link[i], this.link[i + 1], this.link[i + 2]);
+                    String[] split = this.link[i + 1].split(EDGE_LABEL_REGEX);
+                    String metadata = "";
+                    if (split.length > 1) {
+                        metadata = split[1];
+                    }
+
+                    activeDocument.predicate(this.link[i], split[0], this.link[i + 2], metadata);
                 }
             }
 
             if (this.unlink != null) {
                 for (int i = 0; i + 2 < this.unlink.length; i += 3) {
-                    activeDocument.removePredicate(this.unlink[i], this.unlink[i + 1], this.unlink[i + 2]);
+                    activeDocument.unpredicate(this.unlink[i], this.unlink[i + 1], this.unlink[i + 2]);
                 }
             }
 
             if (this.nodeLabels != null) {
                 for (int i = 0; i + 1 < this.nodeLabels.length; i += 2) {
-                    activeDocument.labelNode(this.nodeLabels[i], this.nodeLabels[i + 1]);
+                    activeDocument.setNodeLabel(this.nodeLabels[i], this.nodeLabels[i + 1]);
                 }
             }
 
             if (this.edgeLabels != null) {
-                for (int i = 0; i + 2 < this.edgeLabels.length; i += 3) {
-                    activeDocument.labelEdge(this.edgeLabels[i], this.edgeLabels[i + 1], this.edgeLabels[i + 2]);
+                for (int i = 0; i + 3 < this.edgeLabels.length; i += 4) {
+                    activeDocument.setEdgeLabel(this.edgeLabels[i], this.edgeLabels[i + 1], this.edgeLabels[i + 2], this.edgeLabels[i + 3]);
                 }
             }
 

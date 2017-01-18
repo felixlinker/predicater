@@ -1,7 +1,7 @@
 package de.felixlinker.predicater;
 
 import org.graphstream.graph.Edge;
-import org.graphstream.graph.IdAlreadyInUseException;
+import org.graphstream.graph.Element;
 import org.graphstream.graph.Node;
 
 /**
@@ -11,53 +11,32 @@ import org.graphstream.graph.Node;
 public class StringDocument extends Document<String> {
 
     private static final String LABEL_ATTR = "ui.label";
-    private static final String EDGE_LABEL_REGEX = ":";
 
     public StringDocument(String name) {
         super(name);
     }
 
     @Override
-    public Document addNode(String nodeId, String metaData) throws IdAlreadyInUseException {
-        super.addNode(nodeId, metaData);
-        this.g.getNode(nodeId).setAttribute(LABEL_ATTR, metaData);
-        this.displayGraph.getNode(nodeId).setAttribute(LABEL_ATTR, metaData);
-        return this;
+    void setMetadata(Element element, String metadata) {
+        super.setMetadata(element, metadata);
+        element.addAttribute(LABEL_ATTR, metadata);
     }
 
-    @Override
-    public Document predicate(String subject, String predicate, String object) throws IllegalArgumentException {
-        String[] split = predicate.split(EDGE_LABEL_REGEX);
-        String label = null;
-        if (split.length > 1) {
-            predicate = split[0];
-            label = split[1];
-        }
-
-        super.addPredicate(subject, predicate, object);
-
-        if (label != null) {
-            labelEdge(subject, object, label);
-        }
-
-        return this;
-    }
-
-    public void labelNode(String nodeId, String label) {
-        Node node = super.g.getEdge(nodeId);
+    public void setNodeLabel(String nodeId, String label) throws IllegalArgumentException {
+        Node node = super.g.getNode(nodeId);
         if (node == null) {
-            return;
+            throw new IllegalArgumentException();
         }
 
-        node.addAttribute(LABEL_ATTR, label);
+        setMetadata(node, label);
     }
 
-    public void labelEdge(String node1, String node2, String label) {
-        Edge edge = super.g.getEdge(getEdgeIdBetweenNodes(node1, node2));
+    public void setEdgeLabel(String from, String predicate, String to, String label) throws IllegalArgumentException {
+        Edge edge = super.g.getEdge(getEdgeIdBetweenNodes(from, predicate, to));
         if (edge == null) {
-            return;
+            throw new IllegalArgumentException();
         }
 
-        edge.addAttribute(LABEL_ATTR, label);
+        setMetadata(edge, label);
     }
 }

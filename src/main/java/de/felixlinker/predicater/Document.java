@@ -2,13 +2,15 @@ package de.felixlinker.predicater;
 
 import org.graphstream.graph.*;
 import org.graphstream.graph.implementations.MultiGraph;
-import org.graphstream.graph.implementations.SingleGraph;
+import org.graphstream.stream.AttributeSink;
+import org.graphstream.stream.ElementSink;
 import org.graphstream.stream.GraphParseException;
 import org.graphstream.ui.view.Viewer;
 
 import java.io.IOException;
 import java.net.URL;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -26,15 +28,20 @@ public class Document<T> {
     private static final String RENDERER = "org.graphstream.ui.j2dviewer.J2DGraphRenderer";
     private static final URL STYLE_SHEET = Document.class.getClassLoader().getResource("graph-style.css");
 
+    private static final boolean STRICT_MODE = false;
+    private static final boolean AUTO_CREATE = false;
+
     static {
         System.setProperty(RENDERER_ATTR, RENDERER);
     }
 
     final Graph g;
 
-    final Graph displayGraph;
+    private final Graph displayGraph;
 
     private Viewer graphViewer;
+
+    boolean edgesAreDirected = true;
 
     /**
      * Creates a window that displays the graph. Only one type of edges can be displayed at once.
@@ -56,11 +63,14 @@ public class Document<T> {
         }
     }
 
-    private String displayedPredicate;
+    private final HashSet<String> displayedPredicates = new HashSet<>();
 
     public Document(String name) {
-        this.g = new MultiGraph(name);
-        this.displayGraph = new SingleGraph(name + Integer.toString(name.hashCode()));
+        this.g = new MultiGraph(name, STRICT_MODE, AUTO_CREATE);
+        this.g.addElementSink(new DisplayGraphElementSink());
+        this.g.addAttributeSink(new DisplayGraphAttributeSink());
+
+        this.displayGraph = new MultiGraph(name + Integer.toString(name.hashCode()), STRICT_MODE, AUTO_CREATE);
         this.displayGraph.setAttribute(STYLE_ATTR, "url(" + STYLE_SHEET.toString() + ")");
     }
 
@@ -76,8 +86,8 @@ public class Document<T> {
             throw new IdAlreadyInUseException();
         }
 
-        this.g.addNode(nodeId).setAttribute(META_ATTR, metaData);
-        this.displayGraph.addNode(nodeId).setAttribute(META_ATTR, metaData);
+        Node newNode = this.g.addNode(nodeId);
+        setMetadata(newNode, metaData);
 
         return this;
     }
@@ -88,16 +98,7 @@ public class Document<T> {
      * @return {@code true} if the node could be removed, false if it didn't existed.
      */
     public boolean removeNode(String nodeId) {
-        try {
-            if (this.g.removeNode(nodeId) != null) {
-                this.displayGraph.removeNode(nodeId);
-                return true;
-            }
-
-            return false;
-        } catch (ElementNotFoundException e) {
-            return false;
-        }
+        return this.g.removeNode(nodeId) != null;
     }
 
     /**
@@ -108,7 +109,7 @@ public class Document<T> {
      * @return This document for chain invocation.
      * @throws IllegalArgumentException Thrown if any of the given nodes doesn't exist.
      */
-    public Document predicate(String subject, String predicate, String object) throws IllegalArgumentException {
+    public Document predicate(String subject, String predicate, String object, T metaData) throws IllegalArgumentException, IdAlreadyInUseException {
         Node from = this.g.getNode(subject),
                 to = this.g.getNode(object);
 
@@ -117,15 +118,13 @@ public class Document<T> {
         }
 
         String edgeId = getEdgeIdBetweenNodes(subject, predicate, object);
-        Edge edge = this.g.getEdge(edgeId);
-        if (edge == null) {
-            edge = this.g.addEdge(edgeId, from, to, true);
-            edge.addAttribute(PRED_ATTR, predicate);
-
-            if (predicate.equals(this.displayedPredicate)) {
-                this.displayGraph.addEdge(edgeId, subject, object, true);
-            }
+        if (this.g.getEdge(edgeId) != null) {
+            throw new IdAlreadyInUseException();
         }
+
+        Edge edge = this.g.addEdge(edgeId, from, to, this.edgesAreDirected);
+        edge.addAttribute(PRED_ATTR, predicate);
+        setMetadata(edge, metaData);
 
         return this;
     }
@@ -144,12 +143,7 @@ public class Document<T> {
             throw new IllegalArgumentException();
         }
 
-        String edgeId = getEdgeIdBetweenNodes(subject, predicate, object);
-
-        Edge removed = this.g.removeEdge(edgeId);
-        if (removed != null && predicate.equals(this.displayedPredicate)) {
-            this.displayGraph.removeEdge(edgeId);
-        }
+        this.g.removeEdge(getEdgeIdBetweenNodes(subject, predicate, object));
 
         return this;
     }
@@ -170,21 +164,16 @@ public class Document<T> {
      * @param predicate Edge type to show.
      */
     public void showPredicate(String predicate) {
-        if (predicate == null) {
+        if (predicate == null || displayedPredicates.contains(predicate)) {
             return;
         }
 
-        this.displayGraph.getEachEdge().forEach(edge -> {
-
-            if (!this.g.getEdge(edge.getId()).getAttribute(PRED_ATTR, String.class).equals(predicate)) {
-                this.displayGraph.removeEdge(edge);
-            }
-        });
+        this.displayedPredicates.add(predicate);
 
         this.g.getEachEdge().forEach(edge -> {
-            if (edge.getAttribute(PRED_ATTR, String.class).equals(predicate) && this.displayGraph.getEdge(edge.getId()) == null) {
+            if (edge.getAttribute(PRED_ATTR, String.class).equals(predicate)) {
 
-                Edge newEdge = this.displayGraph.addEdge(edge.getId(), edge.getNode0().getId(), edge.getNode1().getId(), true);
+                Edge newEdge = this.displayGraph.addEdge(edge.getId(), edge.getNode0().getId(), edge.getNode1().getId(), this.edgesAreDirected);
 
                 Map<String, Object> attributeMap = edge.getAttributeKeySet().stream()
                         .collect(Collectors.toMap(
@@ -194,8 +183,23 @@ public class Document<T> {
                 newEdge.addAttributes(attributeMap);
             }
         });
+    }
 
-        this.displayedPredicate = predicate;
+    public void hidePredicate(String predicate) {
+        if (predicate == null || !this.displayedPredicates.contains(predicate)) {
+            return;
+        }
+
+        this.displayedPredicates.remove(predicate);
+
+        LinkedList<Edge> edgesToRemove = new LinkedList<>();
+        this.displayGraph.getEachEdge().forEach(edge -> {
+            if (edge.getAttribute(PRED_ATTR, String.class).equals(predicate)) {
+                edgesToRemove.add(edge);
+            }
+        });
+
+        edgesToRemove.forEach(this.displayGraph::removeEdge);
     }
 
     /**
@@ -212,32 +216,8 @@ public class Document<T> {
         return predicates;
     }
 
-    void mirrorElement(Edge edge) {
-        Edge otherEdge = this.displayGraph.getEdge(edge.getId());
-        if (otherEdge == null) {
-            otherEdge = this.displayGraph.addEdge(edge.getId(), edge.getNode0().getId(), edge.getNode1(), true);
-        }
-
-        mirrorAttributes(edge, otherEdge);
-    }
-
-    void mirrorElement(Node node) {
-        Node otherNode = this.displayGraph.getNode(node.getId());
-        if (otherNode == null) {
-            otherNode = this.displayGraph.addNode(node.getId());
-        }
-
-        mirrorAttributes(node, otherNode);
-    }
-
-    void mirrorAttributes(Element from, Element to) {
-        Map<String, Object> attributeMap = from.getAttributeKeySet().stream()
-                .collect(Collectors.toMap(
-                        attributeKey -> attributeKey,
-                        attributeKey -> from.getAttribute(attributeKey, Object.class)
-                ));
-
-        to.addAttributes(attributeMap);
+    void setMetadata(Element element, T metadata) {
+        element.addAttribute(META_ATTR, metadata);
     }
 
     /**
@@ -248,10 +228,6 @@ public class Document<T> {
      */
     public void read(String fileName) throws IOException, GraphParseException {
         this.g.read(fileName);
-
-        this.displayGraph.read(fileName);
-        this.displayGraph.getEachEdge().forEach(this.displayGraph::removeEdge);
-        this.showPredicate(this.getPredicates().stream().findFirst().get());
     }
 
     /**
@@ -265,5 +241,122 @@ public class Document<T> {
 
     static String getEdgeIdBetweenNodes(String fromNode, String predicate, String toNode) {
         return fromNode + "::" + predicate + "::" + toNode;
+    }
+
+    /**
+     * This class mirrors all activity {@link #g} to {@link #displayGraph} when necessary.
+     */
+    private class DisplayGraphElementSink implements ElementSink {
+
+        @Override
+        public void nodeAdded(String sourceId, long timeId, String nodeId) {
+            displayGraph.addNode(nodeId);
+        }
+
+        @Override
+        public void nodeRemoved(String sourceId, long timeId, String nodeId) {
+            displayGraph.removeNode(nodeId);
+        }
+
+        @Override
+        public void edgeAdded(String sourceId, long timeId, String edgeId, String fromNodeId, String toNodeId, boolean directed) {
+            // When an edge is added it won't have any attributes. We only want to add edges that have tha attribute PRED_ATTR set to displayedPredicate. Therefore we don't add edges here.
+        }
+
+        @Override
+        public void edgeRemoved(String sourceId, long timeId, String edgeId) {
+            displayGraph.removeEdge(edgeId);
+        }
+
+        @Override
+        public void graphCleared(String sourceId, long timeId) {
+            displayGraph.clear();
+        }
+
+        @Override
+        public void stepBegins(String sourceId, long timeId, double step) {}
+    }
+
+    /**
+     * This class mirrors all activity on {@link #g} to {@link #displayGraph} when necessary.
+     */
+    private class DisplayGraphAttributeSink implements AttributeSink {
+
+        @Override
+        public void graphAttributeAdded(String sourceId, long timeId, String attribute, Object value) {
+            displayGraph.addAttribute(attribute, value);
+        }
+
+        @Override
+        public void graphAttributeChanged(String sourceId, long timeId, String attribute, Object oldValue, Object newValue) {
+            displayGraph.addAttribute(attribute, newValue);
+        }
+
+        @Override
+        public void graphAttributeRemoved(String sourceId, long timeId, String attribute) {
+            displayGraph.removeAttribute(attribute);
+        }
+
+        @Override
+        public void nodeAttributeAdded(String sourceId, long timeId, String nodeId, String attribute, Object value) {
+            displayGraph.getNode(nodeId).addAttribute(attribute, value);
+        }
+
+        @Override
+        public void nodeAttributeChanged(String sourceId, long timeId, String nodeId, String attribute, Object oldValue, Object newValue) {
+            displayGraph.getNode(nodeId).addAttribute(attribute, newValue);
+        }
+
+        @Override
+        public void nodeAttributeRemoved(String sourceId, long timeId, String nodeId, String attribute) {
+            displayGraph.getNode(nodeId).removeAttribute(attribute);
+        }
+
+        @Override
+        public void edgeAttributeAdded(String sourceId, long timeId, String edgeId, String attribute, Object value) {
+            Edge edge = displayGraph.getEdge(edgeId);
+
+            if (edge == null) {
+                if (attribute.equals(PRED_ATTR) && displayedPredicates.contains(value)) {
+                    Edge orgEdge = g.getEdge(edgeId);
+                    edge = displayGraph.addEdge(edgeId, orgEdge.getSourceNode().getId(), orgEdge.getTargetNode().getId(), orgEdge.isDirected());
+                } else {
+                    return;
+                }
+            }
+
+            edge.addAttribute(attribute, value);
+        }
+
+        @Override
+        public void edgeAttributeChanged(String sourceId, long timeId, String edgeId, String attribute, Object oldValue, Object newValue) {
+            Edge edge = displayGraph.getEdge(edgeId);
+            if (edge == null) {
+                if (attribute.equals(PRED_ATTR) && displayedPredicates.contains(newValue)) {
+                    Edge orgEdge = g.getEdge(edgeId);
+                    edge = displayGraph.addEdge(edgeId, orgEdge.getSourceNode().getId(), orgEdge.getTargetNode().getId(), orgEdge.isDirected());
+                } else {
+                    return;
+                }
+            } else if (attribute.equals(PRED_ATTR) && !displayedPredicates.contains(newValue)) {
+                displayGraph.removeEdge(edgeId);
+                return;
+            }
+
+            edge.addAttribute(attribute, newValue);
+        }
+
+        @Override
+        public void edgeAttributeRemoved(String sourceId, long timeId, String edgeId, String attribute) {
+            Edge edge = displayGraph.getEdge(edgeId);
+            if (edge == null) {
+                return;
+            } else if (attribute.equals(PRED_ATTR)) {
+                displayGraph.removeEdge(edgeId);
+                return;
+            }
+
+            edge.removeAttribute(attribute);
+        }
     }
 }

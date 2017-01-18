@@ -6,9 +6,3 @@ node {
 	text-alignment: at-right;
 	text-offset: 3px, 0px;
 }
-
-edge {
-    text-alignment: at-right;
-    text-offset: 3px, 0px;
-    text-mode: normal;
-}
