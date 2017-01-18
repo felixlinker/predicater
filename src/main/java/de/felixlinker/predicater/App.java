@@ -203,6 +203,12 @@ public class App {
         @Option(name = "-u", aliases = {"--unlink, --unlink-nodes"}, handler = StringArrayOptionHandler.class)
         private String[] unlink;
 
+        @Option(name = "-ln", aliases = {"--label-node"}, handler = StringArrayOptionHandler.class)
+        private String[] nodeLabels;
+
+        @Option(name = "-le", aliases = {"--label-edge"}, handler = StringArrayOptionHandler.class)
+        private String[] edgeLabels;
+
         /**
          * Arguments to exit this worker.
          */
@@ -244,6 +250,18 @@ public class App {
             if (this.unlink != null) {
                 for (int i = 0; i + 2 < this.unlink.length; i += 3) {
                     activeDocument.removePredicate(this.unlink[i], this.unlink[i + 1], this.unlink[i + 2]);
+                }
+            }
+
+            if (this.nodeLabels != null) {
+                for (int i = 0; i + 1 < this.nodeLabels.length; i += 2) {
+                    activeDocument.labelNode(this.nodeLabels[i], this.nodeLabels[i + 1]);
+                }
+            }
+
+            if (this.edgeLabels != null) {
+                for (int i = 0; i + 2 < this.edgeLabels.length; i += 3) {
+                    activeDocument.labelEdge(this.edgeLabels[i], this.edgeLabels[i + 1], this.edgeLabels[i + 2]);
                 }
             }
 
