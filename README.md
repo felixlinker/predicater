@@ -20,7 +20,6 @@ In the first layer there are follwoing commands available:
 - `--open DOCNAME` alias `-o`: Opens a document named `DOCNAME`.
 - `--read DOCNAME PATH` alias `-r`: Reads a document from file stated in `PATH` and names the document `DOCNAME`.
 - `--write DOCNAME PATH` alias `-w`: Write the document named `DOCNAME` to the file stated in `PATH`.
-- `--exit` alias `-x`: Closes predicater.
 
 ### Second-layer commands
 

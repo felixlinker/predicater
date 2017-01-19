@@ -37,13 +37,11 @@ public class App {
      */
     private Class<? extends Runnable> beanClass = MainWorker.class;
 
-    private boolean stop = false;
-
     /**
      * This method functions as the main loop.
      */
     private void run() {
-        while (!this.stop) {
+        while (true) {
             String[] args;
             try {
                 args = reader.readLine().split(" ");
@@ -73,8 +71,6 @@ public class App {
                 LOGGER.error(e.getMessage(), e);
             }
         }
-
-//        this.documents.forEach(Document::close);
     }
 
     public static void main(String[] args) {
@@ -136,10 +132,6 @@ public class App {
 
         @Override
         public void run() {
-            if (this.stopOption) {
-                stop = true;
-            }
-
             if (read != null) {
                 for (int i = 0; i + 1 < this.read.length; i += 2) {
                     try {

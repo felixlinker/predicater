@@ -9,10 +9,7 @@ import org.graphstream.ui.view.Viewer;
 
 import java.io.IOException;
 import java.net.URL;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -52,15 +49,6 @@ public class Document<T> {
         }
 
         return this;
-    }
-
-    /**
-     * Closes the display windows of the graph.
-     */
-    public void close() {
-        if (this.graphViewer != null) {
-            this.graphViewer.close();
-        }
     }
 
     private final HashSet<String> displayedPredicates = new HashSet<>();
@@ -192,14 +180,13 @@ public class Document<T> {
 
         this.displayedPredicates.remove(predicate);
 
-        LinkedList<Edge> edgesToRemove = new LinkedList<>();
-        this.displayGraph.getEachEdge().forEach(edge -> {
+        Iterator<Edge> iterator = this.displayGraph.getEdgeIterator();
+        while (iterator.hasNext()) {
+            Edge edge = iterator.next();
             if (edge.getAttribute(PRED_ATTR, String.class).equals(predicate)) {
-                edgesToRemove.add(edge);
+                iterator.remove();
             }
-        });
-
-        edgesToRemove.forEach(this.displayGraph::removeEdge);
+        }
     }
 
     /**
