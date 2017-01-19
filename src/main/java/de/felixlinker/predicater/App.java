@@ -213,29 +213,31 @@ public class App {
          * @param predicate Edge type to display.
          */
         @Option(name = "-d", aliases = {"--display"})
-        private void display(String predicate) {
-            activeDocument.showPredicate(predicate);
-        }
+        private String[] displayPredicates;
 
         @Option(name = "-h", aliases = {"--hide"})
-        private void hide(String predicate) {
-            activeDocument.hidePredicate(predicate);
-        }
+        private String[] hidePredicates;
 
         @Option(name = "-t", aliases = {"--edge-types", "--types"})
         private boolean doListEdgeTypes = false;
 
         @Override
         public void run() {
+            if (this.removeNodes != null) {
+                for (String nodeId: this.removeNodes) {
+                    activeDocument.removeNode(nodeId);
+                }
+            }
+
             if (this.addNodes != null) {
                 for (int i = 0; i + 1 < this.addNodes.length; i += 2) {
                     activeDocument.addNode(this.addNodes[i], this.addNodes[i + 1]);
                 }
             }
 
-            if (this.removeNodes != null) {
-                for (String nodeId: this.removeNodes) {
-                    activeDocument.removeNode(nodeId);
+            if (this.unlink != null) {
+                for (int i = 0; i + 2 < this.unlink.length; i += 3) {
+                    activeDocument.unpredicate(this.unlink[i], this.unlink[i + 1], this.unlink[i + 2]);
                 }
             }
 
@@ -251,12 +253,6 @@ public class App {
                 }
             }
 
-            if (this.unlink != null) {
-                for (int i = 0; i + 2 < this.unlink.length; i += 3) {
-                    activeDocument.unpredicate(this.unlink[i], this.unlink[i + 1], this.unlink[i + 2]);
-                }
-            }
-
             if (this.nodeLabels != null) {
                 for (int i = 0; i + 1 < this.nodeLabels.length; i += 2) {
                     activeDocument.setNodeLabel(this.nodeLabels[i], this.nodeLabels[i + 1]);
@@ -266,6 +262,18 @@ public class App {
             if (this.edgeLabels != null) {
                 for (int i = 0; i + 3 < this.edgeLabels.length; i += 4) {
                     activeDocument.setEdgeLabel(this.edgeLabels[i], this.edgeLabels[i + 1], this.edgeLabels[i + 2], this.edgeLabels[i + 3]);
+                }
+            }
+
+            if (this.hidePredicates != null) {
+                for (String predicate: this.hidePredicates) {
+                    activeDocument.hidePredicate(predicate);
+                }
+            }
+
+            if (this.displayPredicates != null) {
+                for (String predicate: this.displayPredicates) {
+                    activeDocument.showPredicate(predicate);
                 }
             }
 
