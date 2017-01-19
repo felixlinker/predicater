@@ -87,17 +87,7 @@ public class App {
          * @param documentName Name of the document to add.
          */
         @Option(name = "-c", aliases = {"--create"})
-        private void addDocument(String documentName) {
-            StringDocument newDocument = new StringDocument(documentName);
-            documents.add(newDocument);
-            newDocument.display();
-        }
-
-        /**
-         * Stores the option to halt the whole App.
-         */
-        @Option(name = "-x", aliases = {"--exit"})
-        private boolean stopOption = false;
+        private String addDocumentName;
 
         /**
          * Opens the given document and switches to {@link DocumentWorker}.
@@ -105,18 +95,7 @@ public class App {
          * @throws IllegalArgumentException
          */
         @Option(name = "-o", aliases = {"--open"})
-        private void open(String documentName) throws IllegalArgumentException {
-            Optional<StringDocument> documentOptional = documents.stream()
-                    .filter(doc -> doc.getName().equals(documentName))
-                    .findFirst();
-
-            if (documentOptional.isPresent()) {
-                activeDocument = documentOptional.get();
-                beanClass = DocumentWorker.class;
-            } else {
-                LOGGER.error("No object matched the given name", new IllegalArgumentException());
-            }
-        }
+        private String openDocumentName;
 
         /**
          * Arguments to read documents from files.
@@ -132,6 +111,25 @@ public class App {
 
         @Override
         public void run() {
+            if (this.addDocumentName != null) {
+                StringDocument newDocument = new StringDocument(this.addDocumentName);
+                documents.add(newDocument);
+                newDocument.display();
+            }
+
+            if (this.openDocumentName != null) {
+                Optional<StringDocument> documentOptional = documents.stream()
+                        .filter(doc -> doc.getName().equals(this.openDocumentName))
+                        .findFirst();
+
+                if (documentOptional.isPresent()) {
+                    activeDocument = documentOptional.get();
+                    beanClass = DocumentWorker.class;
+                } else {
+                    LOGGER.error("No object matched the given name", new IllegalArgumentException());
+                }
+            }
+
             if (read != null) {
                 for (int i = 0; i + 1 < this.read.length; i += 2) {
                     try {
