@@ -117,19 +117,6 @@ public class App {
                 newDocument.display();
             }
 
-            if (this.openDocumentName != null) {
-                Optional<StringDocument> documentOptional = documents.stream()
-                        .filter(doc -> doc.getName().equals(this.openDocumentName))
-                        .findFirst();
-
-                if (documentOptional.isPresent()) {
-                    activeDocument = documentOptional.get();
-                    beanClass = DocumentWorker.class;
-                } else {
-                    LOGGER.error("No object matched the given name", new IllegalArgumentException());
-                }
-            }
-
             if (read != null) {
                 for (int i = 0; i + 1 < this.read.length; i += 2) {
                     try {
@@ -140,6 +127,19 @@ public class App {
                     } catch (IOException | GraphParseException e) {
                         LOGGER.error(e.getMessage(), e);
                     }
+                }
+            }
+
+            if (this.openDocumentName != null) {
+                Optional<StringDocument> documentOptional = documents.stream()
+                        .filter(doc -> doc.getName().equals(this.openDocumentName))
+                        .findFirst();
+
+                if (documentOptional.isPresent()) {
+                    activeDocument = documentOptional.get();
+                    beanClass = DocumentWorker.class;
+                } else {
+                    throw new IllegalArgumentException("No document matched the given name");
                 }
             }
 
@@ -210,10 +210,10 @@ public class App {
          * Argument to display edges of a specific type.
          * @param predicate Edge type to display.
          */
-        @Option(name = "-d", aliases = {"--display"})
+        @Option(name = "-d", aliases = {"--display"}, handler = StringArrayOptionHandler.class)
         private String[] displayPredicates;
 
-        @Option(name = "-h", aliases = {"--hide"})
+        @Option(name = "-h", aliases = {"--hide"}, handler = StringArrayOptionHandler.class)
         private String[] hidePredicates;
 
         @Option(name = "-t", aliases = {"--edge-types", "--types"})

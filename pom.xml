@@ -23,7 +23,7 @@
         <artifactId>maven-shade-plugin</artifactId>
         <version>2.4.3</version>
         <configuration>
-          <shadedArtifactAttached>false</shadedArtifactAttached>
+          <shadedArtifactAttached>true</shadedArtifactAttached>
           <transformers>
             <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
               <mainClass>de.felixlinker.predicater.App</mainClass>
@@ -31,12 +31,24 @@
             <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
           </transformers>
           <finalName>predicater</finalName>
-          <!--<filters>
+          <shadedClassifierName>stand-alone</shadedClassifierName>
+          <filters>
             <filter>
-              <artifact>org.bouncycastle.mail:*</artifact>
-              <exclude></exclude>
+              <!--
+                  Exclude files that sign a jar
+                  (one or multiple of the dependencies).
+                  One may not repack a signed jar without
+                  this, or you will get a
+                  SecurityException at program start.
+              -->
+              <artifact>*:*</artifact>
+              <excludes>
+                <exclude>META-INF/*.SF</exclude>
+                <exclude>META-INF/*.RSA</exclude>
+                <exclude>META-INF/*.INF</exclude> <!-- This one may not be required -->
+              </excludes>
             </filter>
-          </filters>-->
+          </filters>
         </configuration>
         <executions>
           <execution>

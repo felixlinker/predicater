@@ -1,8 +1,23 @@
+edge {
+    text-background-color: #DDD5AF;
+
+    text-background-mode: rounded-box;
+    text-padding: 6px, 2px;
+    text-size: 14px;
+}
+
 node {
-	fill-color: grey;
+	fill-color: #2E4172;
+	stroke-color: #403075;
+    text-background-color: #DDD5AF;
+
 	stroke-mode: plain;
-	stroke-color: black;
 	stroke-width: 1px;
 	text-alignment: at-right;
 	text-offset: 3px, 0px;
+    text-background-mode: rounded-box;
+    text-padding: 6px, 2px;
+    text-offset: 10px, 0px;
+    text-size: 14px;
+    size-mode: fit;
 }
