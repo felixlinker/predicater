@@ -28,14 +28,26 @@ public class Document<T> {
     private static final boolean STRICT_MODE = false;
     private static final boolean AUTO_CREATE = false;
 
+    /**
+     * Set the renderer to allow advanced rendering features.
+     */
     static {
         System.setProperty(RENDERER_ATTR, RENDERER);
     }
 
+    /**
+     * The graph that actual stores all nodes and edges.
+     */
     final Graph g;
 
+    /**
+     * The graph that reflects all nodes and those edges that will be displayed.
+     */
     private final Graph displayGraph;
 
+    /**
+     * Holds the viewer that displays the graph.
+     */
     private Viewer graphViewer;
 
     boolean edgesAreDirected = true;
@@ -53,6 +65,10 @@ public class Document<T> {
 
     private final HashSet<String> displayedPredicates = new HashSet<>();
 
+    /**
+     * Creates a document with given name.
+     * @param name Unique name for the document.
+     */
     public Document(String name) {
         this.g = new MultiGraph(name, STRICT_MODE, AUTO_CREATE);
         this.g.addElementSink(new DisplayGraphElementSink());
@@ -96,18 +112,19 @@ public class Document<T> {
      * @param object Node two's id.
      * @return This document for chain invocation.
      * @throws IllegalArgumentException Thrown if any of the given nodes doesn't exist.
+     * @throws IdAlreadyInUseException Thrown if an edge between given nodes and of given type already exists.
      */
     public Document predicate(String subject, String predicate, String object, T metaData) throws IllegalArgumentException, IdAlreadyInUseException {
         Node from = this.g.getNode(subject),
                 to = this.g.getNode(object);
 
         if (from == null || to == null) {
-            throw new IllegalArgumentException();
+            throw new IllegalArgumentException("At least one of the given nodes does not exist.");
         }
 
         String edgeId = getEdgeIdBetweenNodes(subject, predicate, object);
         if (this.g.getEdge(edgeId) != null) {
-            throw new IdAlreadyInUseException();
+            throw new IdAlreadyInUseException("This edge already exists");
         }
 
         Edge edge = this.g.addEdge(edgeId, from, to, this.edgesAreDirected);
@@ -128,7 +145,7 @@ public class Document<T> {
     public Document unpredicate(String subject, String predicate, String object) throws IllegalArgumentException {
 
         if (this.g.getNode(subject) == null || this.g.getNode(object) == null) {
-            throw new IllegalArgumentException();
+            throw new IllegalArgumentException("At least one of the given nodes does not exist.");
         }
 
         this.g.removeEdge(getEdgeIdBetweenNodes(subject, predicate, object));
@@ -148,7 +165,7 @@ public class Document<T> {
     }
 
     /**
-     * Sets the graph display to show edges of given type.
+     * Edges of given type will be displayed.
      * @param predicate Edge type to show.
      */
     public void showPredicate(String predicate) {
@@ -173,6 +190,10 @@ public class Document<T> {
         });
     }
 
+    /**
+     * Edges of given type will be hidden.
+     * @param predicate Edge type to hide.
+     */
     public void hidePredicate(String predicate) {
         if (predicate == null || !this.displayedPredicates.contains(predicate)) {
             return;
@@ -197,12 +218,21 @@ public class Document<T> {
         return this.g.getId();
     }
 
+    /**
+     * Returns a set of all edge types.
+     * @return All edge types.
+     */
     public Set<String> getPredicates() {
         HashSet<String> predicates = new HashSet<>();
         this.g.getEachEdge().forEach(edge -> predicates.add(edge.getAttribute(PRED_ATTR, String.class)));
         return predicates;
     }
 
+    /**
+     * Sets the metadata to an element of the graph.
+     * @param element Element ot set metadata to.
+     * @param metadata Metadata.
+     */
     void setMetadata(Element element, T metadata) {
         element.addAttribute(META_ATTR, metadata);
     }
@@ -210,8 +240,8 @@ public class Document<T> {
     /**
      * Fills the document with a graph of the given file (extension should be .dgs).
      * @param fileName File to read from.
-     * @throws IOException
-     * @throws GraphParseException
+     * @throws IOException See {@link MultiGraph#read(String)}.
+     * @throws GraphParseException See {@link MultiGraph#read(String)}.
      */
     public void read(String fileName) throws IOException, GraphParseException {
         this.g.read(fileName);
@@ -220,12 +250,19 @@ public class Document<T> {
     /**
      * Writes the graph into a given file (extension should be .dgs).
      * @param fileName File to write to.
-     * @throws IOException
+     * @throws IOException See {@link MultiGraph#write(String)}.
      */
     public void write(String fileName) throws IOException {
         this.g.write(fileName);
     }
 
+    /**
+     * Returns an edge id for stated edge.
+     * @param fromNode Node the edge starts.
+     * @param predicate Edge type.
+     * @param toNode Node the edge ends.
+     * @return Edge id to use in {@link #g} and {@link #displayGraph}.
+     */
     static String getEdgeIdBetweenNodes(String fromNode, String predicate, String toNode) {
         return fromNode + "::" + predicate + "::" + toNode;
     }
