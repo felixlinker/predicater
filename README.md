@@ -41,4 +41,4 @@ If there is more than one `:` everything behind the second colon will be ignored
 - `--label-node [ID LABEL]+` alias `-ln`: Labels the node with the id being `ID` with `LABEL`. 
 - `--label-edge [ID1 EDGE ID2 LABEL]+` alias `-le`: Labels the edge of type `EDGE` between the nodes with the ids being `ID1` and `ID2` with `LABEL`.
 - `--edge-types` alias `--types` `-t`: Displays all list of all available edge types.
-- `--exit` alias `-x``: Closes the current document and returns to first-layer.
+- `--exit` alias `-x`: Closes the current document and returns to first-layer.
