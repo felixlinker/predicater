@@ -114,7 +114,6 @@ public class App {
             if (this.addDocumentName != null) {
                 StringDocument newDocument = new StringDocument(this.addDocumentName);
                 documents.add(newDocument);
-                newDocument.display();
             }
 
             if (read != null) {
@@ -123,7 +122,6 @@ public class App {
                         StringDocument newDocument = new StringDocument(this.read[i]);
                         newDocument.read(this.read[i + 1]);
                         documents.add(newDocument);
-                        newDocument.display();
                     } catch (IOException | GraphParseException e) {
                         LOGGER.error(e.getMessage(), e);
                     }

@@ -5,11 +5,15 @@ import org.graphstream.graph.implementations.MultiGraph;
 import org.graphstream.stream.AttributeSink;
 import org.graphstream.stream.ElementSink;
 import org.graphstream.stream.GraphParseException;
+import org.graphstream.ui.view.View;
 import org.graphstream.ui.view.Viewer;
 
 import java.io.IOException;
 import java.net.URL;
-import java.util.*;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -48,20 +52,11 @@ public class Document<T> {
     /**
      * Holds the viewer that displays the graph.
      */
-    private Viewer graphViewer;
+    private final Viewer graphViewer;
+
+    private final View graphView;
 
     boolean edgesAreDirected = true;
-
-    /**
-     * Creates a window that displays the graph. Only one type of edges can be displayed at once.
-     */
-    public Document display() {
-        if (this.graphViewer == null) {
-            this.graphViewer = this.displayGraph.display();
-        }
-
-        return this;
-    }
 
     private final HashSet<String> displayedPredicates = new HashSet<>();
 
@@ -76,6 +71,9 @@ public class Document<T> {
 
         this.displayGraph = new MultiGraph(name + Integer.toString(name.hashCode()), STRICT_MODE, AUTO_CREATE);
         this.displayGraph.setAttribute(STYLE_ATTR, "url(" + STYLE_SHEET.toString() + ")");
+
+        this.graphViewer = this.displayGraph.display();
+        this.graphView = this.graphViewer.getDefaultView();
     }
 
     /**
